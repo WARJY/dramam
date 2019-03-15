@@ -1,0 +1,135 @@
+<template>
+	<div class="container">
+		<page :isShow="showPage" :minusHeight="minusHeight" imageBg="http://47.107.134.57:3000/images/bg.jpg" :refreshing="refreshing"
+		 @refreshing="handleRefresh" :loading="loading" @loadining="handleLoading">
+			<div class="content">
+				<wxc-searchbar placeholder="关键字" @wxcSearchbarInputOnInput="wxcSearchbarInputOnInput" @wxcSearchbarInputReturned="wxcSearchbarInputReturned"
+				 :bar-style="styleBar"></wxc-searchbar>
+				<div v-for="(item,index) in homeData" :key="index">
+					<div class="history">
+						<div class="histroy-content" @click="getDetail(item)">
+							<text class="histroy-title">{{item.title}}</text>
+							<image v-if="item.src" class="history-img" :src="item.src" resize="cover" />
+							<text v-if="item.content" class="history-text">{{item.content}}</text>
+						</div>
+					</div>
+				</div>
+			</div>
+		</page>
+	</div>
+</template>
+
+<script>
+	import Page from "@/components/Page/index.js"
+	import {
+		WxcSearchbar
+	} from 'weex-ui'
+	const modal = weex.requireModule('modal')
+	const stream = weex.requireModule('stream')
+	const storage = weex.requireModule('storage')
+	export default {
+		name: "search",
+		components: {
+			Page,
+			WxcSearchbar
+		},
+		data() {
+			return {
+				showPage: false,
+				refreshing: false,
+				loading: false,
+				minusHeight: 130,
+				styleBar: {
+					"backgroundColor": "transparent"
+				},
+				homeData: "",
+				keywords: ""
+			}
+		},
+		mounted() {
+			stream.fetch({
+				method: "GET",
+				url: "http://47.107.134.57:3000/home",
+				type: "json"
+			}, res => {
+				this.$data.homeData = res.data
+				this.$data.showPage = true
+			})
+		},
+		methods: {
+			nav2Detail(keywords) {
+				storage.setItem('keywords', keywords, e => {
+					if (e.result === "success") {
+						uni.navigateTo({
+							url: '../detail/detail'
+						});
+					}
+				})
+			},
+			getDetail(item) {
+				if (item.keywords) {
+					this.nav2Detail(item.keywords)
+				}
+			},
+			handleRefresh() {
+				this.$data.refreshing = true
+				setTimeout(() => {
+					this.$data.refreshing = false
+				}, 1000)
+			},
+			handleLoading() {
+				this.$data.loading = true
+				setTimeout(() => {
+					this.$data.loading = false
+				}, 1000)
+			},
+			wxcSearchbarInputOnInput(e) {
+				this.$data.keywords = e.value
+			},
+			wxcSearchbarInputReturned() {
+				this.nav2Detail(this.$data.keywords)
+			}
+		}
+	}
+</script>
+
+<style scoped>
+	.content {
+		margin-top: 10px;
+		display: flex;
+		flex-direction: column;
+		position: relative;
+	}
+
+	.history {
+		width: 750px;
+		padding: 20px;
+		display: flex;
+	}
+
+	.histroy-content {
+		flex: 1;
+		background-color: #e5e5e5;
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		padding: 20px;
+	}
+
+	.histroy-title {
+		font-size: 36px;
+		color: #696969;
+	}
+
+	.history-img {
+		width: 670px;
+		height: 300px;
+		margin-top: 5px;
+		margin-bottom: 5px;
+	}
+
+	.history-text {
+		font-size: 28px;
+		color: #7c8692;
+	}
+</style>

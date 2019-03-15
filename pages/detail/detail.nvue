@@ -1,0 +1,171 @@
+<template>
+	<tab-bar :iconfont="iconfont" :items="navSetting" :index="index" :styleDefault="styleDefault" :styleActive="styleActive"
+	 @switch="handleSwitch">
+		<div slot="drama" class="container">
+			<search-bar mod="nav" placeholder="请输入关键字" :default-value="keywords" @wxcSearchbarInputOnInput="wxcSearchbarInputOnInput"
+			 @wxcSearchbarInputReturned="wxcSearchbarInputReturned" :bar-style="styleBar" @back="handleBack" @press="back2Home"></search-bar>
+			<page :minusHeight="minusHeight" refresh="on" @refreshing="handleRefresh">
+				<wxc-loading :show="!showdrama" type="trip"></wxc-loading>
+				<web ref="drama" class="webview" :src="dramaSrc" @pagefinish="pagefinish" />
+			</page>
+		</div>
+		<div slot="comic" class="container">
+			<search-bar mod="nav" placeholder="请输入关键字" :default-value="keywords" @wxcSearchbarInputOnInput="wxcSearchbarInputOnInput"
+			 @wxcSearchbarInputReturned="wxcSearchbarInputReturned" :bar-style="styleBar" @back="handleBack" @press="back2Home"></search-bar>
+			<page :minusHeight="minusHeight" refresh="on" @refreshing="handleRefresh">
+				<wxc-loading :show="!showcomic" type="trip"></wxc-loading>
+				<web ref="comic" class="webview" :src="comicSrc" @pagefinish="pagefinish" />
+			</page>
+		</div>
+		<div slot="anime" class="container">
+			<search-bar mod="nav" placeholder="请输入关键字" :default-value="keywords" @wxcSearchbarInputOnInput="wxcSearchbarInputOnInput"
+			 @wxcSearchbarInputReturned="wxcSearchbarInputReturned" :bar-style="styleBar" @back="handleBack" @press="back2Home"></search-bar>
+			<page :minusHeight="minusHeight" refresh="on" @refreshing="handleRefresh">
+				<wxc-loading :show="!showanime" type="trip"></wxc-loading>
+				<web ref="anime" class="webview-anime" :src="animeSrc" @pagefinish="pagefinish" />
+			</page>
+		</div>
+	</tab-bar>
+</template>
+
+<script>
+	import config from '@/config/config.js'
+	import Page from "@/components/Page/index.js"
+	import TabBar from "@/components/TabBar/index.js"
+	import SearchBar from "@/components/SearchBar/index.js"
+	import {
+		WxcMinibar,WxcLoading
+	} from 'weex-ui';
+	const modal = weex.requireModule('modal')
+	const storage = weex.requireModule('storage')
+	const webview = weex.requireModule('webview');
+	const navigator = weex.requireModule('navigator')
+	export default {
+		name: "index",
+		components: {
+			Page,
+			TabBar,
+			WxcMinibar,
+			SearchBar,
+			WxcLoading
+		},
+		data() {
+			return {
+				index:0,
+				keywords: "",
+				currentTab: 'drama',
+				showdrama: false,
+				showcomic: false,
+				showanime: false,
+				dramaSrc: " ",
+				comicSrc: " ",
+				animeSrc: " ",
+				minusHeight: 228,
+				navSetting: [{
+						name: "drama",
+						icon: "../../static/drama.png",
+						activeIcon: "../../static/drama_full.png",
+						title: "剧场"
+					},
+					{
+						name: "comic",
+						icon: "../../static/comic.png",
+						activeIcon: "../../static/comic_full.png",
+						title: "漫画"
+					},
+					{
+						name: "anime",
+						icon: "../../static/anime.png",
+						activeIcon: "../../static/anime_full.png",
+						title: "动漫"
+					}
+				],
+				styleDefault: {
+					icon: {
+						color: '#333'
+					},
+					title: {
+						color: '#333'
+					}
+				},
+				styleActive: {
+					icon: {
+						color: '#00d2ff'
+					},
+					title: {
+						color: '#00d2ff'
+					}
+				},
+				styleBar: {
+					"paddingBottom": "90px",
+				}
+			}
+		},
+		mounted() {
+			this.$nextTick(() => {
+				storage.getItem('keywords', e => {
+					if (e.result === "success") {
+						this.getSite(this.$data.currentTab,e.data)
+					}
+				})
+			})
+		},
+		methods: {
+			getSite(type,keywords){
+				let site = config(type, keywords)
+				this.$data.keywords = keywords
+				if(this.$data[`${type}Src`] === site.url) webview.reload(this.$refs[type]);
+				this.$data[`${type}Src`] = site.url
+			},
+			handleSwitch(e) {
+				this.$data.currentTab = e.target.name
+				this.getSite(e.target.name,this.$data.keywords)
+			},
+			wxcSearchbarInputOnInput(e) {
+				this.$data.keywords = e.value
+			},
+			wxcSearchbarInputReturned() {
+				storage.setItem('keywords', this.$data.keywords, e => {
+					if (e.result === "success" && e.data === undefined) {
+						this.getSite(this.$data.currentTab,this.$data.keywords)
+					}
+				})
+			},
+			pagefinish(e){
+				console.log(this.$data.currentTab + ":" + e.url)
+				this.$data[`show${this.$data.currentTab}`] = true
+			},
+			handleBack() {
+				let type = this.$data.currentTab
+				webview.goBack(this.$refs[type]);
+			},
+			back2Home(){
+				navigator.pop({animated:true})
+			},
+			handleRefresh(){
+				console.log("refresh")
+				let type = this.$data.currentTab
+				webview.reload(this.$refs[type]);
+			}
+		}
+	}
+</script>
+
+<style scoped>
+	.container{
+		padding-top: 10px;
+		background-color: #fff;
+	}
+	.webview {
+		width: 750px;
+		height: 1152px;
+		overflow-x: hidden;
+		overflow-y: scroll;
+	}
+	.webview-anime {
+		width: 750px;
+		height: 1152px;
+		overflow-x: hidden;
+		overflow-y: scroll;
+	}
+</style>
